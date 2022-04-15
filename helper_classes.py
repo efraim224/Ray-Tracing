@@ -10,38 +10,47 @@ def normalize(vector):
 # This function gets a vector and the normal of the surface it hit
 # This function returns the vector that reflects from the surface
 def reflected(vector, normal):
-    v = np.array([0,0,0])
-    return v
+    norm_vector = normalize(vector)
+    inner = np.dot(norm_vector, normal)
+    inner = 2 * inner * normal
+    return inner - norm_vector
+
+
+
 
 ## Lights
+
 
 
 class LightSource:
 
     def __init__(self, intensity):
         self.intensity = intensity
-
+    def get_light_ray(self,intersection_point):
+        pass
+    def get_distance_from_light(self, intersection):
+        pass
+    def get_intensity(self, intersection):
+        pass
 
 class DirectionalLight(LightSource):
 
-    def __init__(self, intensity):
+    def __init__(self, intensity, direction):
         super().__init__(intensity)
-        # TODO
+        self.direction = np.array(direction)
+
 
     # This function returns the ray that goes from the light source to a point
-    def get_light_ray(self,intersection_point):
-        # TODO
-        return Ray()
+    def get_light_ray(self,intersection):
+        return Ray(intersection,normalize(self.position - intersection))
 
     # This function returns the distance from a point to the light source
     def get_distance_from_light(self, intersection):
-        #TODO
-        pass
+        return np.linalg.norm(intersection - self.position)
 
     # This function returns the light intensity at a point
     def get_intensity(self, intersection):
-        #TODO
-        pass
+        return self.intensity
 
 
 class PointLight(LightSource):
@@ -53,7 +62,7 @@ class PointLight(LightSource):
         self.kl = kl
         self.kq = kq
 
-    # This function returns the ray that goes from the light source to a point
+    # This function returns the ray that goes from the point to a light source
     def get_light_ray(self,intersection):
         return Ray(intersection,normalize(self.position - intersection))
 
@@ -98,7 +107,12 @@ class Ray:
     def nearest_intersected_object(self, objects):
         nearest_object = None
         min_distance = np.inf
-        #TODO
+        for obj in objects:
+            curr_distance = obj.intersect(self)
+            if curr_distance:
+                if curr_distance < min_distance:
+                    min_distance = curr_distance
+                    nearest_object = obj
         return nearest_object, min_distance
 
 
@@ -121,7 +135,7 @@ class Plane(Object3D):
         v = self.point - ray.origin
         t = (np.dot(v, self.normal) / np.dot(self.normal, ray.direction))
         if t > 0:
-            return t, self
+            return t
         else:
             return None
 
@@ -136,14 +150,18 @@ class Triangle(Object3D):
         self.normal = self.compute_normal()
 
     def compute_normal(self):
-        # TODO
-        n = np.array()
-        return n
+        v1 = self.c - self.a
+        v2 = self.c - self.b
+        return np.cross(v1, v2)
+
+    def get_triangle_plane(self):
+        return Plane(self.compute_normal, self.a)
 
     # Hint: First find the intersection on the plane
     # Later, find if the point is in the triangle using barycentric coordinates
     def intersect(self, ray: Ray):
-        #TODO
+        ab = self.a - self.b
+        
         pass
 
 
@@ -166,9 +184,13 @@ class Mesh(Object3D):
         self.triangle_list = self.create_triangle_list()
 
     def create_triangle_list(self):
-        l = []
-        # TODO
-        return l
+        triangle_list = []
+        for triangle_points in self.f_list:
+            a = self.v_list[triangle_points[0]]
+            b = self.v_list[triangle_points[1]]
+            c = self.v_list[triangle_points[2]]
+            triangle_list.append(Triangle(a, b ,c))
+        return triangle_list
 
     def apply_materials_to_triangles(self):
         for t in self.triangle_list:
@@ -177,5 +199,13 @@ class Mesh(Object3D):
     # Hint: Intersect returns both distance and nearest object.
     # Keep track of both.
     def intersect(self, ray: Ray):
-        #TODO
-        pass
+        distance = np.infi
+        nearest_obj = None
+        for triangle in self.triangle_list:
+            t = triangle.intersect(ray)
+            if t :
+                if t < distance:
+                    distance = t
+                    nearest_obj = triangle
+
+        return nearest_obj, triangle

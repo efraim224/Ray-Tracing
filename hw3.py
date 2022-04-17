@@ -34,7 +34,9 @@ def get_color(ray, lights:LightSource, objects, ambient, level, max_level):
         ray_to_light = light.get_light_ray(intersection_point)
         _, min_distance_object_from_light = ray_to_light.nearest_intersected_object(objects)
         light_distance = light.get_distance_from_light(intersection_point)
-        if min_distance_object_from_light < light_distance:
+        _, min_distance_object_from_light = ray_to_light.nearest_intersected_object(objects)
+
+        if min_distance_object_from_light < light_distance and min_distance_object_from_light > 0.0001:
             return color
         color += calc_diffuse_color(nearest_object, light, intersection_point)
         color += calc_specular_color(ray, nearest_object, light, intersection_point)
@@ -50,7 +52,7 @@ def get_color(ray, lights:LightSource, objects, ambient, level, max_level):
     return color
 
 def calc_specular_color(ray:Ray, nearest_object:Object3D, light:LightSource, intersection_point):
-    to_light_vector = normalize(light.get_light_ray(intersection_point).direction)
+    to_light_vector = normalize(-light.get_light_ray(intersection_point).direction)
     reflected_vector = (reflected(to_light_vector,  nearest_object.normal)) 
     v = normalize(ray.direction)
     inner = np.inner(v, reflected_vector)

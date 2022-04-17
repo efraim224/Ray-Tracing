@@ -53,16 +53,13 @@ class DirectionalLight(LightSource):
         super().__init__(intensity)
         self.direction = np.array(direction)
 
-
-    # This function returns the ray that goes from the light source to a point
+    # from the point to the light
     def get_light_ray(self,intersection):
-        return Ray(intersection, normalize(-self.direction))
+        return Ray(intersection, normalize(self.direction))
 
-    # This function returns the distance from a point to the light source
     def get_distance_from_light(self, intersection):
         return np.inf
 
-    # This function returns the light intensity at a point
     def get_intensity(self, intersection):
         return self.intensity
 
@@ -76,15 +73,12 @@ class PointLight(LightSource):
         self.kl = kl
         self.kq = kq
 
-    # This function returns the ray that goes from the point to a light source
     def get_light_ray(self,intersection):
         return Ray(intersection,normalize(self.position - intersection))
 
-    # This function returns the distance from a point to the light source
     def get_distance_from_light(self,intersection):
         return np.linalg.norm(intersection - self.position)
 
-    # This function returns the light intensity at a point
     def get_intensity(self, intersection):
         d = self.get_distance_from_light(intersection)
         return self.intensity / (self.kc + self.kl*d + self.kq * (d**2))
@@ -165,8 +159,8 @@ class Triangle(Object3D):
 
     def compute_normal(self):
         v1 = self.c - self.a
-        v2 = self.c - self.b
-        return np.cross(v1, v2)
+        v2 = self.b - self.a
+        return normalize(np.cross(v1, v2))
     # Hint: First find the intersection on the plane
 
     def get_triangle_plane(self):

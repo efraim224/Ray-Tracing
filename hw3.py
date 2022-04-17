@@ -15,34 +15,50 @@ def render_scene(camera, ambient, lights, objects, screen_size, max_depth):
             color = np.zeros(3)
             # initializing ray
             ray = Ray(camera, pixel - camera)
-            nearest_object, min_distance = ray.nearest_intersected_object(objects)
-            intersection_point = calcIntersectPoint(ray,min_distance)
-            color += get_color(ray, lights,nearest_object, ambient, intersection_point)
+            # find nearest object
+            color += get_color(ray, lights, objects, ambient, 1, max_depth)
             # We clip the values between 0 and 1 so all pixel values will make sense.
             image[i, j] = np.clip(color,0,1)
 
     return image
 
-def get_color(ray, lights:LightSource, nearest_object, ambient, intersection_point):
+def get_color(ray, lights:LightSource, objects, ambient, level, max_level):
     color = np.zeros(3)
+    nearest_object, min_distance = ray.nearest_intersected_object(objects)
+    intersection_point = calcIntersectPoint(ray,min_distance)
+    if not nearest_object:
+        return color
     color += calc_emmited_color()
-    color += calcAmbientColor(nearest_object, ambient)            
+    color += calcAmbientColor(nearest_object, ambient)      
     for light in lights:
+        ray_to_light = light.get_light_ray(intersection_point)
+        _, min_distance_object_from_light = ray_to_light.nearest_intersected_object(objects)
+        light_distance = light.get_distance_from_light(intersection_point)
+        if min_distance_object_from_light < light_distance:
+            return color
         color += calc_diffuse_color(nearest_object, light, intersection_point)
         color += calc_specular_color(ray, nearest_object, light, intersection_point)
+
+    current_level = level + 1
+    if current_level > max_level:
+        return color
+
+    reflected_vector = reflected(normalize(light.get_light_ray(intersection_point).direction), nearest_object.normal)
+    reflactive_ray = Ray(intersection_point, reflected_vector)
+    color += np.multiply(nearest_object.reflection, get_color(reflactive_ray, lights, objects, ambient, current_level, max_level))
+    
     return color
 
 def calc_specular_color(ray:Ray, nearest_object:Object3D, light:LightSource, intersection_point):
-    # to_light_vector = normalize(light.position - intersection_point)
-    to_light_vector = light.position - intersection_point
-    reflected_vector =  reflected(to_light_vector , nearest_object.normal)
-    v = ray.direction
+    to_light_vector = normalize(light.get_light_ray(intersection_point).direction)
+    reflected_vector = (reflected(to_light_vector,  nearest_object.normal)) 
+    v = normalize(ray.direction)
     inner = np.inner(v, reflected_vector)
     inner = np.power(inner, nearest_object.shininess)
     return nearest_object.specular * light.get_intensity(intersection_point) * inner
 
 def calc_diffuse_color(nearest_object:Object3D, light:LightSource, intersection_point):
-    norm_light_to_point_vector = normalize(light.position - intersection_point)
+    norm_light_to_point_vector = normalize(light.get_light_ray(intersection_point).direction)
     inner = np.inner(nearest_object.normal, norm_light_to_point_vector)
 
     return nearest_object.diffuse * light.get_intensity(intersection_point) * inner

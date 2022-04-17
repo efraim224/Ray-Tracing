@@ -1,3 +1,4 @@
+from cmath import inf
 import numpy as np
 
 
@@ -9,13 +10,26 @@ def normalize(vector):
 # TODO:
 # This function gets a vector and the normal of the surface it hit
 # This function returns the vector that reflects from the surface
+#  R = 2*(L*N)N - L
 def reflected(vector, normal):
     norm_vector = normalize(vector)
     inner = np.dot(norm_vector, normal)
-    inner = 2 * inner * normal
-    return inner - norm_vector
+    inner = np.multiply(2 * inner, normal)
+    return norm_vector - inner 
+
+# # r=d−2(d⋅n)n
+# def reflecter_v2(vector, normal):
+#     vector_from_light = - vector
+#     inner = np.dot(vector_from_light, normal)
+#     inner = 2 * inner * vector
+#     return vector_from_light - inner 
 
 
+def reflecter_v2(vector, normal):
+    norm_vector = (vector)
+    inner = np.dot(norm_vector, normal)
+    inner = 2 * inner * vector
+    return inner  - norm_vector 
 
 
 ## Lights
@@ -42,11 +56,11 @@ class DirectionalLight(LightSource):
 
     # This function returns the ray that goes from the light source to a point
     def get_light_ray(self,intersection):
-        return Ray(intersection,normalize(self.position - intersection))
+        return Ray(intersection, normalize(-self.direction))
 
     # This function returns the distance from a point to the light source
     def get_distance_from_light(self, intersection):
-        return np.linalg.norm(intersection - self.position)
+        return np.inf
 
     # This function returns the light intensity at a point
     def get_intensity(self, intersection):
@@ -153,16 +167,57 @@ class Triangle(Object3D):
         v1 = self.c - self.a
         v2 = self.c - self.b
         return np.cross(v1, v2)
+    # Hint: First find the intersection on the plane
 
     def get_triangle_plane(self):
-        return Plane(self.compute_normal, self.a)
-
-    # Hint: First find the intersection on the plane
+        return Plane(self.normal, self.a)
     # Later, find if the point is in the triangle using barycentric coordinates
+    def intersectv1(self, ray: Ray):
+        # everything in this function was done according to slide 21, recitation 5
+        ab, ac = self.b - self.a, self.c - self.a
+        intersectionPoint = self.get_triangle_plane()
+        intersectionPoint = intersectionPoint.intersect(ray)
+        if not intersectionPoint:
+            return None
+        # areaABC = np.cross(ab,ac)
+        # areaABC = normalize(areaABC) / 2
+        areaABC = np.linalg.norm(np.cross((self.b - self.a), (self.c - self.a))) / 2
+        PA,PB,PC = self.a - intersectionPoint, self.b - intersectionPoint,  self.c - intersectionPoint
+        # alpha = np.cross(PB,PC)
+        # alpha = normalize(alpha) / (2*areaABC)
+        # beta = np.cross(PC,PA)
+        # beta = normalize(beta)  / (2*areaABC)
+        # gamma = 1 - alpha - beta
+        alpha = np.linalg.norm(np.cross(PB, PC)) / (2 * areaABC)
+        beta = np.linalg.norm(np.cross(PC, PA)) / (2 * areaABC)
+        gamma = np.linalg.norm(np.cross(PA, PB)) / (2 * areaABC)
+        is_intersect = np.abs(alpha + beta + gamma - 1) < 0.00001
+        if not is_intersect:
+            return None
+            
+        return intersectionPoint
+
     def intersect(self, ray: Ray):
-        ab = self.a - self.b
+        # TODO
+        plane = Plane(self.normal, self.a)
+        intersection_distance= plane.intersect(ray)
+        if intersection_distance == None:
+            return None
+        intersection_point = ray.origin + intersection_distance*ray.direction
         
-        pass
+        areaABC = np.linalg.norm(np.cross((self.b - self.a), (self.c - self.a))) / 2
+        PA = self.a - intersection_point
+        PB = self.b - intersection_point
+        PC = self.c - intersection_point
+        alpha = np.linalg.norm(np.cross(PB, PC)) / (2 * areaABC)
+        beta = np.linalg.norm(np.cross(PC, PA)) / (2 * areaABC)
+        gamma = np.linalg.norm(np.cross(PA, PB)) / (2 * areaABC)
+
+        is_intersect = np.abs(alpha + beta + gamma - 1) < 0.00001
+        if is_intersect:
+            return intersection_distance
+        else:
+            return None
 
 
 class Sphere(Object3D):

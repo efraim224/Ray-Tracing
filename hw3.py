@@ -21,6 +21,7 @@ def render_scene(camera, ambient, lights, objects, screen_size, max_depth):
             image[i, j] = np.clip(color,0,1)
 
     return image
+    
 EPSILON = 1e-5
 def get_color(ray, lights:LightSource, objects, ambient, level, max_level):
     color = np.zeros(3)

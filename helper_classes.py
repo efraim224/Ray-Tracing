@@ -116,11 +116,19 @@ class Ray:
         nearest_object = None
         min_distance = np.inf
         for obj in objects:
-            curr_distance = obj.intersect(self)
-            if curr_distance:
-                if curr_distance < min_distance:
-                    min_distance = curr_distance
-                    nearest_object = obj
+            is_mesh = isinstance(obj, Mesh) 
+            if is_mesh:
+                nearest_obj, curr_distance = obj.intersect(self)
+                if curr_distance:
+                    if curr_distance < min_distance:
+                        min_distance = curr_distance
+                        nearest_object = nearest_obj
+            else:
+                curr_distance = obj.intersect(self)
+                if curr_distance:
+                    if curr_distance < min_distance:
+                        min_distance = curr_distance
+                        nearest_object = obj
         return nearest_object, min_distance
 
 
@@ -278,4 +286,5 @@ class Mesh(Object3D):
                     distance = t
                     nearest_obj = triangle
 
-        return nearest_obj, triangle
+        return nearest_obj, distance
+

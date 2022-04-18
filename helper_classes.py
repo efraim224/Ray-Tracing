@@ -146,6 +146,16 @@ class Plane(Object3D):
             return t
         else:
             return None
+    
+    def getOutwardFacingNormal(self, direction):
+        norm = self.normal
+        point = self.point
+        x,y,z = direction + point
+        a,b,c = norm
+        d = np.abs(a*point[0] + b*point[1] + c*point[2]) / np.sqrt(a*a+b*b+c*c)
+        if (a*x + b*y + c*z + d ) <= 0:
+            return norm
+        return -norm
 
 
 
@@ -161,6 +171,13 @@ class Triangle(Object3D):
         v1 = self.c - self.a
         v2 = self.b - self.a
         return normalize(np.cross(v1, v2))
+    
+    def getOutwardFacingNormal(self, direction):
+        norm = self.normal
+        x,y,z = direction + self.a
+        if (norm[0]*x + norm[1]*y + norm[2]*z) <= 0:
+            return norm
+        return -norm
     # Hint: First find the intersection on the plane
 
     def get_triangle_plane(self):
@@ -185,8 +202,8 @@ class Triangle(Object3D):
         alpha = np.linalg.norm(np.cross(PB, PC)) / (2 * areaABC)
         beta = np.linalg.norm(np.cross(PC, PA)) / (2 * areaABC)
         gamma = np.linalg.norm(np.cross(PA, PB)) / (2 * areaABC)
-        is_intersect = np.abs(alpha + beta + gamma - 1) < 0.00001
-        if not is_intersect:
+        
+        if not np.abs(alpha + beta + gamma - 1) < 0.00001:
             return None
             
         return intersectionPoint
@@ -248,7 +265,7 @@ class Mesh(Object3D):
     # Hint: Intersect returns both distance and nearest object.
     # Keep track of both.
     def intersect(self, ray: Ray):
-        distance = np.infi
+        distance = np.inf
         nearest_obj = None
         for triangle in self.triangle_list:
             t = triangle.intersect(ray)

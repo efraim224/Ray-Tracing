@@ -14,18 +14,20 @@ def render_scene(camera, ambient, lights, objects, screen_size, max_depth):
             pixel = np.array([x, y, 0])
             color = np.zeros(3)
             # initializing ray
-            ray = Ray(camera, pixel - camera)
+            ray = Ray(camera, normalize(pixel - camera))
             # find nearest object
             color += get_color(ray, lights, objects, ambient, 1, max_depth)
             # We clip the values between 0 and 1 so all pixel values will make sense.
             image[i, j] = np.clip(color,0,1)
 
     return image
-
+EPSILON = 1e-5
 def get_color(ray, lights:LightSource, objects, ambient, level, max_level):
     color = np.zeros(3)
     nearest_object, min_distance = ray.nearest_intersected_object(objects)
     intersection_point = calcIntersectPoint(ray,min_distance)
+    direction = -lights[0].direction if hasattr(lights[0], "direction") else normalize(lights[0].position - intersection_point) 
+    intersection_point = intersection_point + EPSILON * normalize(nearest_object.getOutwardFacingNormal(direction))
     if not nearest_object:
         return color
     color += calc_emmited_color()
@@ -52,7 +54,7 @@ def get_color(ray, lights:LightSource, objects, ambient, level, max_level):
     return color
 
 def calc_specular_color(ray:Ray, nearest_object:Object3D, light:LightSource, intersection_point):
-    to_light_vector = normalize(-light.get_light_ray(intersection_point).direction)
+    to_light_vector = normalize(light.get_light_ray(intersection_point).direction)
     reflected_vector = (reflected(to_light_vector,  nearest_object.normal)) 
     v = normalize(ray.direction)
     inner = np.inner(v, reflected_vector)
@@ -60,8 +62,8 @@ def calc_specular_color(ray:Ray, nearest_object:Object3D, light:LightSource, int
     return nearest_object.specular * light.get_intensity(intersection_point) * inner
 
 def calc_diffuse_color(nearest_object:Object3D, light:LightSource, intersection_point):
-    norm_light_to_point_vector = normalize(light.get_light_ray(intersection_point).direction)
-    inner = np.inner(nearest_object.normal, norm_light_to_point_vector)
+    norm_light_to_point_vector = normalize(-light.get_light_ray(intersection_point).direction)
+    inner = np.inner(nearest_object.getOutwardFacingNormal(-norm_light_to_point_vector), norm_light_to_point_vector)
 
     return nearest_object.diffuse * light.get_intensity(intersection_point) * inner
 

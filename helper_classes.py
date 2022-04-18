@@ -152,8 +152,9 @@ class Plane(Object3D):
         point = self.point
         x,y,z = direction + point
         a,b,c = norm
-        d = np.abs(a*point[0] + b*point[1] + c*point[2]) / np.sqrt(a*a+b*b+c*c)
-        if (a*x + b*y + c*z + d ) <= 0:
+        # d = np.abs(a*point[0] + b*point[1] + c*point[2]) / np.sqrt(a*a+b*b+c*c)
+        d = a*point[0] + b*point[1] + c*point[2]
+        if (a*x + b*y + c*z - d ) <= 0:
             return norm
         return -norm
 
@@ -174,8 +175,11 @@ class Triangle(Object3D):
     
     def getOutwardFacingNormal(self, direction):
         norm = self.normal
-        x,y,z = direction + self.a
-        if (norm[0]*x + norm[1]*y + norm[2]*z) <= 0:
+        point = self.a
+        x,y,z = direction + point
+        a,b,c = norm
+        d = a*point[0] + b*point[1] + c*point[2]
+        if (a*x + b*y + c*z - d ) <= 0:
             return norm
         return -norm
     # Hint: First find the intersection on the plane

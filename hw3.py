@@ -26,13 +26,19 @@ EPSILON = 1e-5
 def get_color(ray, lights:LightSource, objects, ambient, level, max_level):
     color = np.zeros(3)
     nearest_object, min_distance = ray.nearest_intersected_object(objects)
-    intersection_point = calcIntersectPoint(ray,min_distance)
-    direction = -lights[0].direction if hasattr(lights[0], "direction") else normalize(lights[0].position - intersection_point) 
-    intersection_point = intersection_point + EPSILON * normalize(nearest_object.getOutwardFacingNormal(direction))
     if not nearest_object:
         return color
+    is_Sphere = isinstance(nearest_object, Sphere)
+    intersection_point = calcIntersectPoint(ray,min_distance)
+    direction = -lights[0].direction if hasattr(lights[0], "direction") else normalize(lights[0].position - intersection_point)
+    if is_Sphere:
+        outwardFacingNormal = normalize(nearest_object.getOutwardFacingNormal(direction, intersection_point))
+    else:
+        outwardFacingNormal = normalize(nearest_object.getOutwardFacingNormal(direction))
+    intersection_point = intersection_point + EPSILON * outwardFacingNormal
+    
     color += calc_emmited_color()
-    color += calcAmbientColor(nearest_object, ambient)      
+    color += calcAmbientColor(nearest_object, ambient) 
     for light in lights:
         ray_to_light = light.get_light_ray(intersection_point)
         _, min_distance_object_from_light = ray_to_light.nearest_intersected_object(objects)
@@ -41,30 +47,36 @@ def get_color(ray, lights:LightSource, objects, ambient, level, max_level):
 
         if min_distance_object_from_light < light_distance and min_distance_object_from_light > 0.0001:
             return color
-        color += calc_diffuse_color(nearest_object, light, intersection_point)
-        color += calc_specular_color(ray, nearest_object, light, intersection_point)
+        color += calc_diffuse_color(nearest_object, light, intersection_point, is_Sphere)
+        color += calc_specular_color(ray, nearest_object, light, intersection_point, is_Sphere)
 
-    current_level = level + 1
-    if current_level > max_level:
-        return color
+        current_level = level + 1
+        if current_level > max_level:
+            return color
 
-    reflected_vector = reflected(normalize(light.get_light_ray(intersection_point).direction), nearest_object.normal)
-    reflactive_ray = Ray(intersection_point, reflected_vector)
-    color += np.multiply(nearest_object.reflection, get_color(reflactive_ray, lights, objects, ambient, current_level, max_level))
+        reflected_vector = reflected(normalize(ray.direction), outwardFacingNormal)
+        reflactive_ray = Ray(intersection_point, reflected_vector)
+        color += np.multiply(nearest_object.reflection, get_color(reflactive_ray, lights, objects, ambient, current_level, max_level))
     
     return color
 
-def calc_specular_color(ray:Ray, nearest_object:Object3D, light:LightSource, intersection_point):
+def calc_specular_color(ray:Ray, nearest_object:Object3D, light:LightSource, intersection_point, is_Sphere=False):
     to_light_vector = normalize(light.get_light_ray(intersection_point).direction)
-    reflected_vector = (reflected(to_light_vector,  nearest_object.normal)) 
+    if is_Sphere:
+        reflected_vector = (reflected(to_light_vector,  nearest_object.getOutwardFacingNormal(to_light_vector, -to_light_vector))) 
+    else:
+        reflected_vector = (reflected(to_light_vector,  nearest_object.getOutwardFacingNormal(to_light_vector))) 
     v = normalize(ray.direction)
     inner = np.inner(v, reflected_vector)
     inner = np.power(inner, nearest_object.shininess)
     return nearest_object.specular * light.get_intensity(intersection_point) * inner
 
-def calc_diffuse_color(nearest_object:Object3D, light:LightSource, intersection_point):
+def calc_diffuse_color(nearest_object:Object3D, light:LightSource, intersection_point, is_Sphere=False):
     norm_light_to_point_vector = normalize(-light.get_light_ray(intersection_point).direction)
-    inner = np.inner(nearest_object.getOutwardFacingNormal(-norm_light_to_point_vector), norm_light_to_point_vector)
+    if is_Sphere:
+        inner = np.inner(nearest_object.getOutwardFacingNormal(-norm_light_to_point_vector, intersection_point), norm_light_to_point_vector)
+    else:
+        inner = np.inner(nearest_object.getOutwardFacingNormal(-norm_light_to_point_vector), norm_light_to_point_vector)
 
     return nearest_object.diffuse * light.get_intensity(intersection_point) * inner
 

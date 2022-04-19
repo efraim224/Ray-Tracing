@@ -87,9 +87,12 @@ class PointLight(LightSource):
 class SpotLight(LightSource):
 
 
-    def __init__(self, intensity):
+    def __init__(self, intensity, position, kc, kl, kq):
         super().__init__(intensity)
-        # TODO
+        self.position = np.array(position)
+        self.kc = kc
+        self.kl = kl
+        self.kq = kq
 
     # This function returns the ray that goes from the light source to a point
     def get_light_ray(self,intersection):
@@ -155,7 +158,7 @@ class Plane(Object3D):
         else:
             return None
     
-    def getOutwardFacingNormal(self, direction):
+    def getOutwardFacingNormal(self, direction, intersectPoint=None):
         norm = self.normal
         point = self.point
         x,y,z = direction + point
@@ -181,7 +184,7 @@ class Triangle(Object3D):
         v2 = self.b - self.a
         return normalize(np.cross(v1, v2))
     
-    def getOutwardFacingNormal(self, direction):
+    def getOutwardFacingNormal(self, direction, intersectPoint=None):
         norm = self.normal
         point = self.a
         x,y,z = direction + point
@@ -249,8 +252,26 @@ class Sphere(Object3D):
         self.radius = radius
 
     def intersect(self, ray: Ray):
-        #TODO
-        pass
+        a = np.linalg.norm(ray.direction) ** 2
+        b = 2 * np.dot(ray.direction, ray.origin - self.center)
+        c = np.linalg.norm(ray.origin - self.center) ** 2 - self.radius ** 2
+        delta = b ** 2 - 4 * a * c
+        if delta <= 0:
+            return None
+        t1 = (-b + np.sqrt(delta)) / (2 * a)
+        t2 = (-b - np.sqrt(delta)) / (2 * a)
+        if t1 > 0 and t2 > 0:
+            return min(t1, t2)
+        return None
+    
+    def getNormal(self, intersectPoint):
+        norm = normalize(intersectPoint - self.center)
+        return norm
+
+    def getOutwardFacingNormal(self, direction, intersectPoint):
+        norm = normalize(intersectPoint - self.center)
+        plane = Plane(norm, intersectPoint)
+        return plane.getOutwardFacingNormal(direction)
 
 
 class Mesh(Object3D):

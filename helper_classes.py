@@ -119,28 +119,29 @@ class Ray:
     def nearest_intersected_object(self, objects, current_object_that_ray_shoots=None):
         nearest_object = None
         min_distance = np.inf
-        if current_object_that_ray_shoots is Sphere:
+        is_sphere = isinstance(current_object_that_ray_shoots, Sphere)
+        if is_sphere:
             is_blocking = current_object_that_ray_shoots.checkifblocking(self)
             if is_blocking:
                 min_distance = current_object_that_ray_shoots.intersect(self)
-                nearest_obj =  current_object_that_ray_shoots
-        else:          
-            for obj in objects:
-                is_mesh = isinstance(obj, Mesh)
-                if current_object_that_ray_shoots and obj is current_object_that_ray_shoots:
-                    continue
-                elif is_mesh:
-                    nearest_obj, curr_distance = obj.intersect(self)
-                    if curr_distance:
-                        if curr_distance < min_distance:
-                            min_distance = curr_distance
-                            nearest_object = nearest_obj
-                else:
-                    curr_distance = obj.intersect(self)
-                    if curr_distance:
-                        if curr_distance < min_distance:
-                            min_distance = curr_distance
-                            nearest_object = obj
+                nearest_object =  current_object_that_ray_shoots  
+                return nearest_object, min_distance
+        for obj in objects:
+            is_mesh = isinstance(obj, Mesh)
+            if current_object_that_ray_shoots and obj is current_object_that_ray_shoots:
+                continue
+            elif is_mesh:
+                nearest_obj, curr_distance = obj.intersect(self)
+                if curr_distance:
+                    if curr_distance < min_distance:
+                        min_distance = curr_distance
+                        nearest_object = nearest_obj
+            else:
+                curr_distance = obj.intersect(self)
+                if curr_distance:
+                    if curr_distance < min_distance:
+                        min_distance = curr_distance
+                        nearest_object = obj
         return nearest_object, min_distance
 
 

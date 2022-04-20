@@ -21,7 +21,7 @@ def render_scene(camera, ambient, lights, objects, screen_size, max_depth):
             image[i, j] = np.clip(color,0,1)
 
     return image
-    
+
 EPSILON = 1e-5
 def get_color(ray: Ray, lights:LightSource, objects, ambient, level, max_level, object_from_ray=None):
     color = np.zeros(3)
@@ -46,6 +46,8 @@ def get_color(ray: Ray, lights:LightSource, objects, ambient, level, max_level, 
         if not not_blocked_by_light:
             color += calc_diffuse_color(nearest_object, light, intersection_point, is_sphere)
             color += calc_specular_color(ray, nearest_object, light, intersection_point, is_sphere)
+        else:
+            color = np.zeros(3)
 
     current_level = level + 1
     if current_level > max_level:
@@ -59,7 +61,8 @@ def get_color(ray: Ray, lights:LightSource, objects, ambient, level, max_level, 
 
 def get_intersection_point_and_outwards_normal(ray, nearest_object, lights, min_distance, is_Sphere):
     intersection_point = calcIntersectPoint(ray,min_distance)
-    direction = -lights[0].direction if hasattr(lights[0], "direction") else normalize(lights[0].position - intersection_point)
+    # direction = -lights[0].direction if hasattr(lights[0], "direction") else normalize(lights[0].position - intersection_point)
+    direction = ray.direction
     if is_Sphere:
         outwardFacingNormal = normalize(nearest_object.getOutwardFacingNormal(direction, intersection_point))
     else:

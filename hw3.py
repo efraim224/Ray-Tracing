@@ -28,23 +28,24 @@ def get_color(ray: Ray, lights:LightSource, objects, ambient, level, max_level, 
     nearest_object, min_distance = ray.nearest_intersected_object(objects, object_from_ray)
     if not nearest_object:
         return color
-    is_Sphere = isinstance(nearest_object, Sphere)
-    intersection_point = calcIntersectPoint(ray,min_distance)
-    direction = -lights[0].direction if hasattr(lights[0], "direction") else normalize(lights[0].position - intersection_point)
-    if is_Sphere:
-        outwardFacingNormal = normalize(nearest_object.getOutwardFacingNormal(direction, intersection_point))
-    else:
-        outwardFacingNormal = normalize(nearest_object.getOutwardFacingNormal(direction))
-    intersection_point = intersection_point + EPSILON * outwardFacingNormal
-    
+    is_sphere = isinstance(nearest_object, Sphere)
+    # intersection_point = calcIntersectPoint(ray,min_distance)
+    # direction = -lights[0].direction if hasattr(lights[0], "direction") else normalize(lights[0].position - intersection_point)
+    # if is_Sphere:
+    #     outwardFacingNormal = normalize(nearest_object.getOutwardFacingNormal(direction, intersection_point))
+    # else:
+    #     outwardFacingNormal = normalize(nearest_object.getOutwardFacingNormal(direction))
+    # intersection_point = intersection_point + EPSILON * outwardFacingNormal
+    intersection_point, outwardFacingNormal = get_intersection_point_and_outwards_normal(ray, nearest_object, lights, min_distance, is_sphere)
+
     color += calc_emmited_color()
-    color += calcAmbientColor(nearest_object, ambient) 
+    color += calc_ambient_color(nearest_object, ambient) 
     for light in lights:
         not_blocked_by_light = is_light_blocked_by_object(light, objects, nearest_object, intersection_point)
 
         if not not_blocked_by_light:
-            color += calc_diffuse_color(nearest_object, light, intersection_point, is_Sphere)
-            color += calc_specular_color(ray, nearest_object, light, intersection_point, is_Sphere)
+            color += calc_diffuse_color(nearest_object, light, intersection_point, is_sphere)
+            color += calc_specular_color(ray, nearest_object, light, intersection_point, is_sphere)
 
     current_level = level + 1
     if current_level > max_level:
@@ -55,6 +56,17 @@ def get_color(ray: Ray, lights:LightSource, objects, ambient, level, max_level, 
     color += np.multiply(nearest_object.reflection, get_color(reflactive_ray, lights, objects, ambient, current_level, max_level, nearest_object))
     
     return color
+
+def get_intersection_point_and_outwards_normal(ray, nearest_object, lights, min_distance, is_Sphere):
+    intersection_point = calcIntersectPoint(ray,min_distance)
+    direction = -lights[0].direction if hasattr(lights[0], "direction") else normalize(lights[0].position - intersection_point)
+    if is_Sphere:
+        outwardFacingNormal = normalize(nearest_object.getOutwardFacingNormal(direction, intersection_point))
+    else:
+        outwardFacingNormal = normalize(nearest_object.getOutwardFacingNormal(direction))
+    intersection_point = intersection_point + EPSILON * outwardFacingNormal
+    return intersection_point, outwardFacingNormal
+
 
 def is_light_blocked_by_object(light, objects, nearest_object, intersection_point):
     not_blocked_by_light = False
@@ -90,15 +102,12 @@ def calc_diffuse_color(nearest_object:Object3D, light:LightSource, intersection_
     if is_Sphere:
         inner = np.inner(nearest_object.getOutwardFacingNormal(-norm_light_to_point_vector, intersection_point), norm_light_to_point_vector)
     else:
-        if is_spotlight:
-            inner = np.inner(nearest_object.getOutwardFacingNormal(-norm_light_to_point_vector), norm_light_to_point_vector)
-        else:
-            inner = np.inner(nearest_object.getOutwardFacingNormal(-norm_light_to_point_vector), norm_light_to_point_vector)
+        inner = np.inner(nearest_object.getOutwardFacingNormal(-norm_light_to_point_vector), norm_light_to_point_vector)
 
     return nearest_object.diffuse * light.get_intensity(intersection_point) * inner
 
 
-def calcAmbientColor(nearest_object:Object3D, ambient):
+def calc_ambient_color(nearest_object:Object3D, ambient):
     return nearest_object.ambient *ambient
 
 def calc_emmited_color():
@@ -107,8 +116,7 @@ def calc_emmited_color():
 def calcIntersectPoint(ray:Ray, distance):
     return ray.origin + ray.direction * distance
 
-# Write your own objects and lights
-# TODO
+
 def your_own_scene():
     camera = np.array([0,0,1])
     sphere_a = Sphere([-0.5, 0.2, -1],0.5)
@@ -122,7 +130,7 @@ def your_own_scene():
     
     background = Plane(normal=[0,0,1], point=[0,0,-2])
     background.set_material([0.5, 0.5, 0.3], [0.7, 0.7, 1], [1, 1, 1], 1000, 0.5)
-    
+
     light = PointLight(intensity= np.array([1, 1, 1]),position=np.array([1,1.5,1]),kc=0.1,kl=0.1,kq=0.1)
 
     lights = [light]

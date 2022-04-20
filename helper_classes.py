@@ -1,5 +1,6 @@
 from cmath import inf
 import numpy as np
+from sqlalchemy import false, true
 
 
 # This function gets a vector and returns its normalized form.
@@ -115,23 +116,31 @@ class Ray:
 
     # The function is getting the collection of objects in the scene and looks for the one with minimum distance.
     # The function should return the nearest object and its distance (in two different arguments)
-    def nearest_intersected_object(self, objects):
+    def nearest_intersected_object(self, objects, current_object_that_ray_shoots=None):
         nearest_object = None
         min_distance = np.inf
-        for obj in objects:
-            is_mesh = isinstance(obj, Mesh) 
-            if is_mesh:
-                nearest_obj, curr_distance = obj.intersect(self)
-                if curr_distance:
-                    if curr_distance < min_distance:
-                        min_distance = curr_distance
-                        nearest_object = nearest_obj
-            else:
-                curr_distance = obj.intersect(self)
-                if curr_distance:
-                    if curr_distance < min_distance:
-                        min_distance = curr_distance
-                        nearest_object = obj
+        if current_object_that_ray_shoots is Sphere:
+            is_blocking = current_object_that_ray_shoots.checkifblocking(self)
+            if is_blocking:
+                min_distance = current_object_that_ray_shoots.intersect(self)
+                nearest_obj =  current_object_that_ray_shoots
+        else:          
+            for obj in objects:
+                is_mesh = isinstance(obj, Mesh)
+                if current_object_that_ray_shoots and obj is current_object_that_ray_shoots:
+                    continue
+                elif is_mesh:
+                    nearest_obj, curr_distance = obj.intersect(self)
+                    if curr_distance:
+                        if curr_distance < min_distance:
+                            min_distance = curr_distance
+                            nearest_object = nearest_obj
+                else:
+                    curr_distance = obj.intersect(self)
+                    if curr_distance:
+                        if curr_distance < min_distance:
+                            min_distance = curr_distance
+                            nearest_object = obj
         return nearest_object, min_distance
 
 
@@ -262,6 +271,8 @@ class Sphere(Object3D):
         t2 = (-b - np.sqrt(delta)) / (2 * a)
         if t1 > 0 and t2 > 0:
             return min(t1, t2)
+        elif t1 > 0 or t2 > 0:
+            return max(t1, t2)
         return None
     
     def getNormal(self, intersectPoint):
@@ -272,6 +283,24 @@ class Sphere(Object3D):
         norm = normalize(intersectPoint - self.center)
         plane = Plane(norm, intersectPoint)
         return plane.getOutwardFacingNormal(direction)
+
+
+    def checkifblocking(self, ray: Ray):
+        MARGIN=1e-5
+        a = np.linalg.norm(ray.direction) ** 2
+        b = 2 * np.dot(ray.direction, ray.origin - self.center)
+        c = np.linalg.norm(ray.origin - self.center) ** 2 - self.radius ** 2
+        delta = b ** 2 - 4 * a * c
+        if delta <= 0:
+            return None
+        t1 = (-b + np.sqrt(delta)) / (2 * a)
+        t2 = (-b - np.sqrt(delta)) / (2 * a)
+        if t1 > 0 and t2 > 0:
+            return True
+        elif abs(t1) < MARGIN and t2 > 0:
+            return True
+        return False
+
 
 
 class Mesh(Object3D):

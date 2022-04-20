@@ -23,9 +23,9 @@ def render_scene(camera, ambient, lights, objects, screen_size, max_depth):
     return image
     
 EPSILON = 1e-5
-def get_color(ray, lights:LightSource, objects, ambient, level, max_level):
+def get_color(ray, lights:LightSource, objects, ambient, level, max_level, object_from_ray=None):
     color = np.zeros(3)
-    nearest_object, min_distance = ray.nearest_intersected_object(objects)
+    nearest_object, min_distance = ray.nearest_intersected_object(objects, object_from_ray)
     if not nearest_object:
         return color
     is_Sphere = isinstance(nearest_object, Sphere)
@@ -41,10 +41,13 @@ def get_color(ray, lights:LightSource, objects, ambient, level, max_level):
     color += calcAmbientColor(nearest_object, ambient) 
     for light in lights:
         ray_to_light = light.get_light_ray(intersection_point)
-        _, min_distance_object_from_light = ray_to_light.nearest_intersected_object(objects)
+        ray_light_obj, min_distance_object_from_light = ray_to_light.nearest_intersected_object(objects, nearest_object)
+        ray_light_obj_is_Sphere = isinstance(ray_light_obj, Sphere)
+        if ray_light_obj_is_Sphere:
+            sphere_is_blocking_light = ray_light_obj.checkifblocking(ray_to_light)
+            if sphere_is_blocking_light:
+                return color
         light_distance = light.get_distance_from_light(intersection_point)
-        _, min_distance_object_from_light = ray_to_light.nearest_intersected_object(objects)
-
         if min_distance_object_from_light < light_distance and min_distance_object_from_light > 0.0001:
             return color
         color += calc_diffuse_color(nearest_object, light, intersection_point, is_Sphere)
@@ -56,7 +59,7 @@ def get_color(ray, lights:LightSource, objects, ambient, level, max_level):
 
         reflected_vector = reflected(normalize(ray.direction), outwardFacingNormal)
         reflactive_ray = Ray(intersection_point, reflected_vector)
-        color += np.multiply(nearest_object.reflection, get_color(reflactive_ray, lights, objects, ambient, current_level, max_level))
+        color += np.multiply(nearest_object.reflection, get_color(reflactive_ray, lights, objects, ambient, current_level, max_level, nearest_object))
     
     return color
 

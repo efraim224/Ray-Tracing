@@ -55,9 +55,22 @@ def get_color(ray: Ray, lights:LightSource, objects, ambient, level, max_level, 
 
     reflected_vector = reflected(normalize(ray.direction), outwardFacingNormal)
     reflactive_ray = Ray(intersection_point, reflected_vector)
+    # get reflective color
     color += np.multiply(nearest_object.reflection, get_color(reflactive_ray, lights, objects, ambient, current_level, max_level, nearest_object))
-
+    # get refractive color
+    if nearest_object.refraction:
+        refraction_ray= calc_refraction_ray(ray, nearest_object, )
+        color += np.multiply(nearest_object.refraction, get_color(refraction_ray, lights, objects, ambient, current_level, max_level, nearest_object))
     return color
+
+
+def calc_refraction_ray():
+    pass
+
+
+def calc_refraction_color(refraction_ray: Ray, nearest_object):
+
+    pass
 
 def get_intersection_point_and_outwards_normal(ray, nearest_object, lights, min_distance, is_Sphere):
     intersection_point = calcIntersectPoint(ray,min_distance)
@@ -157,7 +170,11 @@ def obj_file_reader_to_mesh(file_name):
             v_list.append(np_array)
         elif words[0] == 'f':
             nums = [words[1], words[2], words[3]]
-            np_array = np.asarray(nums, dtype=float)
+            np_array = np.asarray(nums, dtype=int)
+            np_array = np_array - 1
             f_list.append(np_array)
 
+    # max_index = np.amax([np.amax(l) for l in f_list])
+    # min_index = np.amin([np.amin(l) for l in f_list])
+    # length = len(v_list)
     return Mesh(v_list, f_list)

@@ -148,12 +148,13 @@ class Ray:
 
 class Object3D:
 
-    def set_material(self, ambient, diffuse, specular, shininess, reflection):
+    def set_material(self, ambient, diffuse, specular, shininess, reflection, refraction=None):
         self.ambient = ambient
         self.diffuse = diffuse
         self.specular = specular
         self.shininess = shininess
         self.reflection = reflection
+        self.refraction = refraction
 
 
 class Plane(Object3D):

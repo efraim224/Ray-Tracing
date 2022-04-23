@@ -54,7 +54,6 @@ class DirectionalLight(LightSource):
         super().__init__(intensity)
         self.direction = np.array(direction)
 
-    # from the point to the light
     def get_light_ray(self,intersection):
         return Ray(intersection, normalize(self.direction))
 

@@ -56,7 +56,7 @@ def get_color(ray: Ray, lights:LightSource, objects, ambient, level, max_level, 
     reflected_vector = reflected(normalize(ray.direction), outwardFacingNormal)
     reflactive_ray = Ray(intersection_point, reflected_vector)
     color += np.multiply(nearest_object.reflection, get_color(reflactive_ray, lights, objects, ambient, current_level, max_level, nearest_object))
-    
+
     return color
 
 def get_intersection_point_and_outwards_normal(ray, nearest_object, lights, min_distance, is_Sphere):
@@ -140,3 +140,24 @@ def your_own_scene():
     objects = [sphere_a, sphere_b, shepre_c, background]
     return camera, lights, objects
 
+def obj_file_reader_to_mesh(file_name):
+    file = open(file_name, 'r')
+    v_list = []
+    f_list = []
+    
+    content = file.readlines()
+
+    for line in content:
+        words = line.split()
+        if len(words) != 4:
+            continue
+        if words[0] == 'v':
+            nums = [words[1], words[2], words[3]]
+            np_array = np.asarray(nums, dtype=float)
+            v_list.append(np_array)
+        elif words[0] == 'f':
+            nums = [words[1], words[2], words[3]]
+            np_array = np.asarray(nums, dtype=float)
+            f_list.append(np_array)
+
+    return Mesh(v_list, f_list)

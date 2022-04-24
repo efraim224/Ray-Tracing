@@ -63,7 +63,7 @@ def get_color(ray: Ray, lights:LightSource, objects, ambient, level, max_level, 
 
 
 def calc_refraction_ray(ray:Ray, nearest_object, intersection_point):
-    refraction_ration = ray.refraction / nearest_object.refraction
+    refraction_ration = ray.refraction / nearest_object.wave
     v1 = nearest_object.getOutwardFacingNormal(ray.direction)
     v2 = -ray.direction
     v1_magnitude = vector_magnitude(v1)

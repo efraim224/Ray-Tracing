@@ -111,9 +111,11 @@ class SpotLight(LightSource):
         return (self.intensity * inner) / attenuation_factor
 
 class Ray:
-    def __init__(self, origin, direction):
+    def __init__(self, origin, direction, refraction=1.000273):
         self.origin = origin
         self.direction = direction
+        # air refraction in index table
+        self.refraction=refraction
 
     # The function is getting the collection of objects in the scene and looks for the one with minimum distance.
     # The function should return the nearest object and its distance (in two different arguments)
